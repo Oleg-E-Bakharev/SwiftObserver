@@ -1,23 +1,33 @@
-//
-//  Created by Oleg Bakharev on 29.09.2021.
-//
+//  Copyright (C) Oleg Bakharev 2021. All Rights Reserved
 
-/// Шаблон Наблюдатель события
-///  Слушатель связи "один ко многим".
+/// Наблюдатель события, доставляющий уведомления методу класса.
 public final class Observer<Target: AnyObject, Parameter> : EventHandler<Parameter> {
-    weak var target: Target?
-
     public typealias Action = (Target)->(Parameter)->Void
-    let action: Action
+    public typealias VoidAction = (Target)->()->Void
+    
+    weak var target: Target?
+    let action: Action?
+    let voidAction: VoidAction?
 
     public init(target: Target?, action: @escaping Action) {
         self.target = target
         self.action = action
+        self.voidAction = nil
     }
 
+    public init(target: Target?, action: @escaping VoidAction) where Parameter == Void {
+        self.target = target
+        self.action = nil
+        self.voidAction = action
+    }
+    
     public override func handle(_ value: Parameter) -> Bool {
         guard let target = target else { return false }
-        action(target)(value)
+        if let action = action {
+            action(target)(value)
+        } else {
+            voidAction?(target)()
+        }
         return true
     }
 }
@@ -27,17 +37,31 @@ public final class Observer<Target: AnyObject, Parameter> : EventHandler<Paramet
 public extension Observer {
     final class Link {
         public typealias Action = (Target) -> (Parameter) -> Void
+        public typealias VoidAction = (Target)->()->Void
+        
         weak var target: Target?
-        let action: Action
+        let action: Action?
+        let voidAction: VoidAction?
 
-        public init(target: Target, action: @escaping Action) {
+        public init(target: Target?, action: @escaping Action) {
             self.target = target
             self.action = action
+            self.voidAction = nil
+        }
+        
+        public init(target: Target?, action: @escaping VoidAction) where Parameter == Void {
+            self.target = target
+            self.action = nil
+            self.voidAction = action
         }
 
-        func send(_ value: Parameter) -> Void {
+        func forward(_ value: Parameter) -> Void {
             guard let target = target else { return }
-            action(target)(value)
+            if let action = action {
+                action(target)(value)
+            } else {
+                voidAction?(target)()
+            }
         }
     }
 }
@@ -69,7 +93,7 @@ public extension ObserverClosure {
             self.action = action
         }
 
-        func send(_ value: Parameter) -> Void {
+        func forward(_ value: Parameter) -> Void {
             action(value)
         }
     }
@@ -86,12 +110,12 @@ public extension EventProtocol {
     /// Добавления обнуляемой связи к постоянному объекту. Если link удалится, то связь безопасно порвётся.
     static func +=<Target> (event: Self, link: Observer<Target, Parameter>.Link) {
         typealias Link = Observer<Target, Parameter>.Link
-        event += Observer(target: link, action: Link.send)
+        event += Observer(target: link, action: Link.forward)
     }
     
     /// Добавления обнуляемой связи к постоянному замыканию. Если link удалится, то связь безопасно порвётся.
     static func += (event: Self, link: ObserverClosure<Parameter>.Link) {
         typealias Link = ObserverClosure<Parameter>.Link
-        event += Observer(target: link, action: Link.send)
+        event += Observer(target: link, action: Link.forward)
     }
 }

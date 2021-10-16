@@ -1,3 +1,5 @@
+//  Copyright (C) Oleg Bakharev 2021. All Rights Reserved
+
 import XCTest
 import SwiftObserver
 
@@ -41,7 +43,7 @@ extension Emitter: Subject {
 private final class Handler {
     var isHandledVoid = false
     var isHandledInt = false
-    func onVoid(_: Void) {
+    func onVoid() {
         isHandledVoid = true
     }
     func onInt(_: Int) {
@@ -101,26 +103,26 @@ final class ObserverTests: XCTestCase {
         XCTAssertTrue(h1.isHandledVoid && h2.isHandledVoid)
     }
 
-    func testEventWithLinkHandler() {
+    func testEventVoidWithLinkHandler() {
         let e = Emitter()
         let s: Subject = e
         let h1 = Handler()
         let h2 = Handler()
         let h3 = Handler()
         s.eventVoid += Observer(target: h1, action: Handler.onVoid)
-        var mayBeLink: Any?
+        var maybeLink: Any?
         do {
             let link = Observer.Link(target: h2, action: Handler.onVoid)
             s.eventVoid += link
-            mayBeLink = link
+            maybeLink = link
         }
         e.sendVoid()
         XCTAssertTrue(h1.isHandledVoid)
         XCTAssertTrue(h2.isHandledVoid)
         h1.isHandledVoid = false
         h2.isHandledVoid = false
-        XCTAssertNotNil(mayBeLink)
-        mayBeLink = nil
+        XCTAssertNotNil(maybeLink)
+        maybeLink = nil
         s.eventVoid += Observer(target: h3, action: Handler.onVoid)
         // link dead now but 3 handlers
         e.sendVoid()
@@ -130,7 +132,37 @@ final class ObserverTests: XCTestCase {
         XCTAssertFalse(h2.isHandledVoid)
         XCTAssertTrue(h3.isHandledVoid)
     }
-    
+
+    func testEventIntWithLinkHandler() {
+        let e = Emitter()
+        let s: Subject = e
+        let h1 = Handler()
+        let h2 = Handler()
+        let h3 = Handler()
+        s.eventInt += Observer(target: h1, action: Handler.onInt)
+        var mayBeLink: Any?
+        do {
+            let link = Observer.Link(target: h2, action: Handler.onInt)
+            s.eventInt += link
+            mayBeLink = link
+        }
+        e.sendInt(1)
+        XCTAssertTrue(h1.isHandledInt)
+        XCTAssertTrue(h2.isHandledInt)
+        h1.isHandledInt = false
+        h2.isHandledInt = false
+        XCTAssertNotNil(mayBeLink)
+        mayBeLink = nil
+        s.eventInt += Observer(target: h3, action: Handler.onInt)
+        // link dead now but 3 handlers
+        e.sendInt(2)
+        // two handlers now
+
+        XCTAssertTrue(h1.isHandledInt)
+        XCTAssertFalse(h2.isHandledInt)
+        XCTAssertTrue(h3.isHandledInt)
+    }
+
     func testIsConnected() {
         let e = Emitter()
         var h: Handler? = Handler()
@@ -171,7 +203,7 @@ final class ObserverTests: XCTestCase {
     func testObserverClosureLink() {
         let e = Emitter()
         let s: Subject = e
-        var mayBeLink: Any?
+        var maybeLink: Any?
         var isIntHandled1 = false
         var isIntHandled2 = false
         var isIntHandled3 = false
@@ -184,15 +216,15 @@ final class ObserverTests: XCTestCase {
                 isIntHandled2 = true
             }
             s.eventInt += link
-            mayBeLink = link
+            maybeLink = link
         }
         e.sendInt(0)
         XCTAssertTrue(isIntHandled1)
         XCTAssertTrue(isIntHandled2)
         isIntHandled1 = false
         isIntHandled2 = false
-        XCTAssertNotNil(mayBeLink)
-        mayBeLink = nil
+        XCTAssertNotNil(maybeLink)
+        maybeLink = nil
         s.eventInt += { (value: Int) in
             print(value)
             isIntHandled3 = true

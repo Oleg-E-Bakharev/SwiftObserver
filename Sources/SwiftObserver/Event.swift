@@ -1,6 +1,4 @@
-//
-//  Created by Oleg Bakharev on 29.09.2021.
-//
+//  Copyright (C) Oleg Bakharev 2021. All Rights Reserved
 
 /// Шаблон Наблюдатель события
 /// Источник связи "один ко многим".

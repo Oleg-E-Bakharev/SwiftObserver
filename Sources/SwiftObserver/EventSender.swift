@@ -1,18 +1,17 @@
-//
-//  Created by Oleg Bakharev on 03.10.2021.
-//
+//  Copyright (C) Oleg Bakharev 2021. All Rights Reserved
 
-/// Обертка вокруг Event для возможности генерации событий.
+/// Обертка вокруг Event для возможности рассылки уведомлений.
 /// Во внешний интерфейс выставляем Event. Внутри объявляем EventSender.
 public struct EventSender<Parameter> {
     public var event: Event<Parameter>
     
+    /// Опциональный уведомитель о подключении первого слушателя к событию
     public init(connectionNotifier: (() -> Void)? = nil) {
         event = .init(connectionNotifier: connectionNotifier)
     }
         
-    /// Послать событие всем слушателям о возникновении события
-    /// *returns* Есть ли подключения в данный момент (была ли реально произведена отправка)
+    /// Послать уведомление всем слушателям о возникновении события
+    /// *returns* Есть ли подключения в данный момент (была ли реально произведена отправка уведомления)
     @discardableResult
     public mutating func send(_ value: Parameter) -> Bool {
         return event.notifyHandlers(value)
