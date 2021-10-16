@@ -1,5 +1,5 @@
 import XCTest
-@testable import SwiftObserver
+import SwiftObserver
 
 private protocol Subject {
     var eventVoid: Event<Void> { get }
@@ -7,24 +7,23 @@ private protocol Subject {
 }
 
 private final class Emitter {
-    var voidSender = EventSender<Void>()
-    var intSender = EventSender<Int>()
+    lazy var voidSender = EventSender<Void>() { [weak self] in
+        self?.isVoidEventConnected = true
+    }
+    lazy var intSender = EventSender<Int>() { [weak self] in
+        self?.isIntEventConnected = true
+    }
     var isVoidEventConnected = false
     var isIntEventConnected = false
 
     func sendVoid() {
-        voidSender.send()
+        isVoidEventConnected = voidSender.send()
     }
 
     func sendInt(_ value: Int) {
-        intSender.send(value)
+        isIntEventConnected = intSender.send(value)
     }
-    
-    init() {
-        voidSender.isConnected += Observer(target: self, action: Emitter.onVoidConnected)
-        intSender.isConnected += Observer(target: self, action: Emitter.onIntConnected)
-    }
-    
+        
     func onVoidConnected(_ isConnected: Bool) {
         isVoidEventConnected = isConnected
     }
@@ -32,12 +31,11 @@ private final class Emitter {
     func onIntConnected(_ isConnected: Bool) {
         isIntEventConnected = isConnected
     }
-
 }
 
 extension Emitter: Subject {
-    var eventVoid: Event<Void> { self.voidSender }
-    var eventInt: Event<Int> { self.intSender }
+    var eventVoid: Event<Void> { voidSender.event }
+    var eventInt: Event<Int> { intSender.event }
 }
 
 private final class Handler {

@@ -2,25 +2,24 @@
 //  Created by Oleg Bakharev on 03.10.2021.
 //
 
-/// Фасад для использования EventSender.
+/// Обертка вокруг Event для возможности генерации событий.
 /// Во внешний интерфейс выставляем Event. Внутри объявляем EventSender.
-public final class EventSender<Param>: Event<Param> {
-    private lazy var isConnectedSender = EventSender<Bool>()
-    /// Уведомление о наличии подписчиков.
-    public var isConnected: Event<Bool> { isConnectedSender }
+public struct EventSender<Parameter> {
+    public var event: Event<Parameter>
     
+    public init(connectionNotifier: (() -> Void)? = nil) {
+        event = .init(connectionNotifier: connectionNotifier)
+    }
+        
     /// Послать событие всем слушателям о возникновении события
-    public func send(_ value: Param) {
-        notifyHandlers(value)
+    /// *returns* Есть ли подключения в данный момент (была ли реально произведена отправка)
+    @discardableResult
+    public mutating func send(_ value: Parameter) -> Bool {
+        return event.notifyHandlers(value)
     }
 
-    public func send() where Param == Void {
-        notifyHandlers(())
-    }
-    
-    override var hasConnections: Bool {
-        didSet {
-            isConnectedSender.send(hasConnections)
-        }
+    @discardableResult
+    public mutating func send() -> Bool where Parameter == Void {
+        return event.notifyHandlers(())
     }
 }

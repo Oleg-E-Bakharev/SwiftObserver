@@ -4,8 +4,27 @@
 
 /// Шаблон Наблюдатель события
 /// Источник связи "один ко многим".
-public class Event<Param> {
-    typealias Handler = EventHandler<Param>
+public protocol EventProtocol: AnyObject {
+    associatedtype Parameter
+
+    /// Долавление нового слушателя
+    static func += (event: Self, handler: EventHandler<Parameter>)
+}
+
+// MARK: -
+/// База для обработчиков сообщений.
+public class EventHandler<Parameter> {
+    /// Обработать полученное событие.
+    /// Возвращает статус true - слушатель готов получать дальнейшие события. false - больше не посылать.
+    public func handle(_ value: Parameter) -> Bool {
+        fatalError("must override")
+    }
+}
+
+// MARK: -
+/// Реализация
+public final class Event<Parameter>: EventProtocol {
+    public typealias Handler = EventHandler<Parameter>
 
     /// Cписок обработчиков.
     private final class Node {
@@ -18,16 +37,20 @@ public class Event<Param> {
         }
     }
     private var handlers: Node?
+    private var connectionNotifier: (() -> Void)?
+    
+    /// connectedNotifier - опциональный слушатель подключения первого наблюдателя
+    internal init(connectionNotifier: (() -> Void)? ) {
+        self.connectionNotifier = connectionNotifier
+    }
 
     /// Уведомить всех слушателей о возникновении события
     /// При этом все отвалившиеся слушатели удаляются из списка
-    /// Недоступна для внешнего вызова. Для внешнего вызова использовать фасад EventSource.
-    func notifyHandlers(_ value: Param) {
-        handlers = recursiveWalk(handlers)
-        if hasConnections && handlers == nil {
-            hasConnections = false
-        }
-
+    /// Недоступна для внешнего вызова.
+    /// Для внешнего вызова использовать EventSource.
+    /// *returns* true если есть подключения слушателей
+    internal func notifyHandlers(_ value: Parameter) -> Bool {
+        // Рекурсивный проход по слушателям с удалением отвалившихся.
         func recursiveWalk(_ node: Node?) -> Node? {
             guard node != nil else { return nil }
             var node = node
@@ -40,26 +63,17 @@ public class Event<Param> {
             }
             return node
         }
+        
+        handlers = recursiveWalk(handlers)
+        return handlers != nil
     }
     
-    var hasConnections = false
-
     /// Добавление слушателя. Слушатель добавляется по слабой ссылке. Чтобы убрать слушателя, надо удалить его объект.
     /// Допустимо применять посредника (Observer.Link) для удаления слушателя без удаления целевого боъекта.
-    public static func += (event: Event, handler: EventHandler<Param>) {
-        if !event.hasConnections {
-            event.hasConnections = true
+    public static func += (event: Event, handler: Handler) {
+        if event.handlers == nil {
+            event.connectionNotifier?()
         }
         event.handlers = Node(handler: handler, next: event.handlers)
-    }
-}
-
-// MARK: -
-/// База для обработчиков сообщений.
-public class EventHandler<Param> {
-    /// Обработать полученное событие.
-    /// Возвращает статус true - слушатель готов волучать дальнейшие события. false - больше не послылать.
-    public func handle(_ value: Param) -> Bool {
-        fatalError("must override")
     }
 }
