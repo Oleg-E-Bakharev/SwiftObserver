@@ -6,12 +6,12 @@ public protocol EventProtocol: AnyObject {
     associatedtype Parameter
 
     /// Долавление нового слушателя
-    static func += (event: Self, handler: EventHandler<Parameter>)
+    static func += (event: Self, handler: EventObserver<Parameter>)
 }
 
 // MARK: -
 /// База для обработчиков сообщений.
-public class EventHandler<Parameter> {
+public class EventObserver<Parameter> {
     /// Обработать полученное событие.
     /// Возвращает статус true - слушатель готов получать дальнейшие события. false - больше не посылать.
     public func handle(_ value: Parameter) -> Bool {
@@ -22,19 +22,19 @@ public class EventHandler<Parameter> {
 // MARK: -
 /// Реализация
 public final class Event<Parameter>: EventProtocol {
-    public typealias Handler = EventHandler<Parameter>
+    public typealias Observer = EventObserver<Parameter>
 
     /// Cписок обработчиков.
     private final class Node {
-        var handler: Handler
+        var observer: Observer
         var next: Node?
 
-        init(handler: Handler, next: Node?) {
-            self.handler = handler
+        init(observer: Observer, next: Node?) {
+            self.observer = observer
             self.next = next
         }
     }
-    private var handlers: Node?
+    private var observers: Node?
     private var connectionNotifier: (() -> Void)?
     
     /// connectedNotifier - опциональный слушатель подключения первого наблюдателя
@@ -47,13 +47,13 @@ public final class Event<Parameter>: EventProtocol {
     /// Недоступна для внешнего вызова.
     /// Для внешнего вызова использовать EventSource.
     /// *returns* true если есть подключения слушателей
-    internal func notifyHandlers(_ value: Parameter) -> Bool {
+    internal func notifyObservers(_ value: Parameter) -> Bool {
         // Рекурсивный проход по слушателям с удалением отвалившихся.
         func recursiveWalk(_ node: Node?) -> Node? {
             guard node != nil else { return nil }
             var node = node
             // Схлопываем пустые узлы
-            while let current = node, !current.handler.handle(value) {
+            while let current = node, !current.observer.handle(value) {
                 node = current.next
             }
             if let current = node {
@@ -62,16 +62,16 @@ public final class Event<Parameter>: EventProtocol {
             return node
         }
         
-        handlers = recursiveWalk(handlers)
-        return handlers != nil
+        observers = recursiveWalk(observers)
+        return observers != nil
     }
     
     /// Добавление слушателя. Слушатель добавляется по слабой ссылке. Чтобы убрать слушателя, надо удалить его объект.
-    /// Допустимо применять посредника (Observer.Link) для удаления слушателя без удаления целевого боъекта.
-    public static func += (event: Event, handler: Handler) {
-        if event.handlers == nil {
+    /// Допустимо применять посредника (Observer.Link) для отключения слушателя без удаления целевого боъекта.
+    public static func += (event: Event, observer: Observer) {
+        if event.observers == nil {
             event.connectionNotifier?()
         }
-        event.handlers = Node(handler: handler, next: event.handlers)
+        event.observers = Node(observer: observer, next: event.observers)
     }
 }

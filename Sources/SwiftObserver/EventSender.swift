@@ -14,11 +14,11 @@ public struct EventSender<Parameter> {
     /// *returns* Есть ли подключения в данный момент (была ли реально произведена отправка уведомления)
     @discardableResult
     public mutating func send(_ value: Parameter) -> Bool {
-        return event.notifyHandlers(value)
+        return event.notifyObservers(value)
     }
 
     @discardableResult
     public mutating func send() -> Bool where Parameter == Void {
-        return event.notifyHandlers(())
+        return event.notifyObservers(())
     }
 }

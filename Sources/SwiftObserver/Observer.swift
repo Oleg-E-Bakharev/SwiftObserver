@@ -1,7 +1,7 @@
 //  Copyright (C) Oleg Bakharev 2021. All Rights Reserved
 
 /// Наблюдатель события, доставляющий уведомления методу класса.
-public final class Observer<Target: AnyObject, Parameter> : EventHandler<Parameter> {
+public final class Observer<Target: AnyObject, Parameter> : EventObserver<Parameter> {
     public typealias Action = (Target)->(Parameter)->Void
     public typealias VoidAction = (Target)->()->Void
     
@@ -68,7 +68,7 @@ public extension Observer {
 
 // MARK: -
 ///  Слушатель связи "один ко многим" на основе замыкания.
-public final class ObserverClosure<Parameter> : EventHandler<Parameter> {
+public final class ObserverClosure<Parameter> : EventObserver<Parameter> {
     public typealias Action = (Parameter)->Void
     let action: Action
 
