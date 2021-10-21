@@ -9,10 +9,10 @@ private protocol Subject {
 }
 
 private final class Emitter {
-    lazy var voidSender = EventSender<Void>() { [weak self] in
+    private lazy var voidSender = EventSender<Void>() { [weak self] in
         self?.isVoidEventConnected = true
     }
-    lazy var intSender = EventSender<Int>() { [weak self] in
+    private lazy var intSender = EventSender<Int>() { [weak self] in
         self?.isIntEventConnected = true
     }
     var isVoidEventConnected = false

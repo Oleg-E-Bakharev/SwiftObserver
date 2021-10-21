@@ -8,9 +8,9 @@ private protocol Subject {
 }
 
 private final class Emitter : Subject {
-    var voidSender = EventSender<Void>()
+    private var voidSender = EventSender<Void>()
     var eventVoid: Event<Void> { voidSender.event }
-    
+
     func send() {
         voidSender.send()
     }
@@ -23,15 +23,17 @@ private final class Receiver {
 }
 
 final class ObserverSandbox: XCTestCase {
-    public func testCaseOne() {
+    // UIControl-like connection. Connection breaks on target release.
+    public func testTargetActionObserver() {
         let emitter = Emitter()
         let receiver = Receiver()
         let subject: Subject = emitter
         subject.eventVoid += Observer(target: receiver, action: Receiver.onVoid)
         emitter.send() // "Notify received"
     }
-    
-    public func testCaseTwo() {
+
+    // UIControl-like connection. Connection breaks on link release.
+    public func testTargetActionLinkObserver() {
         let emitter = Emitter()
         let receiver = Receiver()
         let subject: Subject = emitter
@@ -46,8 +48,9 @@ final class ObserverSandbox: XCTestCase {
         mayBeLink = nil
         emitter.send() // No output
     }
-    
-    func testCaseTree() {
+
+    // Prmanent closure observer
+    func testPermanentClosure() {
         let emitter = Emitter()
         let subject: Subject = emitter
 //        subject.eventVoid += ObserverClosure<Void>() { ... }
@@ -57,7 +60,8 @@ final class ObserverSandbox: XCTestCase {
         emitter.send() // Event received
     }
 
-    func testCaseFour() {
+    // Disposable closure link. Connection breaks on link release.
+    func testClosureLinkObserevr() {
         let emitter = Emitter()
         let subject: Subject = emitter
         var maybeLink: Any?
