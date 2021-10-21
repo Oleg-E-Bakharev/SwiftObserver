@@ -29,7 +29,7 @@ final class ObserverSandbox: XCTestCase {
         let receiver = Receiver()
         let subject: Subject = emitter
         subject.eventVoid += Observer(target: receiver, action: Receiver.onVoid)
-        emitter.send() // "Notify received"
+        emitter.send() // "Event received"
     }
 
     // UIControl-like connection. Connection breaks on link release.
