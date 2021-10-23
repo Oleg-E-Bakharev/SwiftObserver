@@ -4,6 +4,9 @@
 Концептуально заменяет схемы применения UIControl и [NS]NotificationCenter на чистом Swift
 Весь код покрыт тестами. Покрытие > 95%.
 
+Штатный способ подключения - Swift Package Manager
+https://github.com/Oleg-E-Bakharev/SwiftObserver
+
 # Примеры использования
 
 ```Swift
