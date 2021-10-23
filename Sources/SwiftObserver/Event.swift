@@ -38,7 +38,7 @@ public final class Event<Parameter>: EventProtocol {
     private var connectionNotifier: (() -> Void)?
     
     /// connectedNotifier - опциональный слушатель подключения первого наблюдателя
-    internal init(connectionNotifier: (() -> Void)? ) {
+    internal init(connectionNotifier: (() -> Void)?) {
         self.connectionNotifier = connectionNotifier
     }
 

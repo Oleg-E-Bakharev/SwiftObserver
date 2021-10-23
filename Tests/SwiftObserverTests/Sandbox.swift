@@ -7,7 +7,7 @@ private protocol Subject {
     var eventVoid: Event<Void> { get }
 }
 
-private final class Emitter : Subject {
+private final class Emitter: Subject {
     private var voidSender = EventSender<Void>()
     var eventVoid: Event<Void> { voidSender.event }
 
