@@ -34,7 +34,7 @@ private final class Receiver {
 }
 
 final class ObserverSandbox: XCTestCase {
-    public func testCaseOne() {
+    public func testTargetActionObserver() {
         let emitter = Emitter()
         let receiver = Receiver()
         let subject: Subject = emitter
@@ -42,7 +42,7 @@ final class ObserverSandbox: XCTestCase {
         emitter.send() // "Event received"
     }
     
-    public func testCaseTwo() {
+    public func testTargetActionLinkObserver() {
         let emitter = Emitter()
         let receiver = Receiver()
         let subject: Subject = emitter
