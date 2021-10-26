@@ -2,7 +2,7 @@
 
 /// Шаблон Наблюдатель события
 /// Источник связи "один ко многим".
-public protocol EventProtocol: AnyObject {
+public protocol EventProtocol {
     associatedtype Parameter
 
     /// Долавление нового слушателя
