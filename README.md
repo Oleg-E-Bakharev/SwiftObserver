@@ -1,8 +1,11 @@
 # SwiftObserver
 
-Реализация шаблона проектирования Наблюдатель на Swift
-Концептуально заменяет схемы применения UIControl и [NS]NotificationCenter на чистом Swift
+Реализация шаблона проектирования Наблюдатель на Swift.
+Концептуально заменяет схемы применения UIControl и [NS]NotificationCenter на чистом Swift.
 Весь код покрыт тестами. Покрытие > 95%.
+
+Штатный способ подключения - Swift Package Manager
+https://github.com/Oleg-E-Bakharev/SwiftObserver
 
 # Примеры использования
 
@@ -31,7 +34,7 @@ private final class Receiver {
 }
 
 final class ObserverSandbox: XCTestCase {
-    public func testCaseOne() {
+    public func testTargetActionObserver() {
         let emitter = Emitter()
         let receiver = Receiver()
         let subject: Subject = emitter
@@ -39,7 +42,7 @@ final class ObserverSandbox: XCTestCase {
         emitter.send() // "Event received"
     }
     
-    public func testCaseTwo() {
+    public func testTargetActionLinkObserver() {
         let emitter = Emitter()
         let receiver = Receiver()
         let subject: Subject = emitter
