@@ -2,8 +2,8 @@
 
 /// Наблюдатель события, доставляющий уведомления методу класса.
 public final class Observer<Target: AnyObject, Parameter> : EventObserver<Parameter> {
-    public typealias Action = (Target)->(Parameter)->Void
-    public typealias VoidAction = (Target)->()->Void
+    public typealias Action = (Target) -> (Parameter) -> Void
+    public typealias VoidAction = (Target) -> () -> Void
     
     weak var target: Target?
     let action: Action?
@@ -37,7 +37,7 @@ public final class Observer<Target: AnyObject, Parameter> : EventObserver<Parame
 public extension Observer {
     final class Link {
         public typealias Action = (Target) -> (Parameter) -> Void
-        public typealias VoidAction = (Target)->()->Void
+        public typealias VoidAction = (Target) -> () -> Void
         
         weak var target: Target?
         let action: Action?
@@ -69,7 +69,7 @@ public extension Observer {
 // MARK: -
 ///  Слушатель связи "один ко многим" на основе замыкания.
 public final class ObserverClosure<Parameter> : EventObserver<Parameter> {
-    public typealias Action = (Parameter)->Void
+    public typealias Action = (Parameter) -> Void
     let action: Action
 
     public init(action: @escaping Action) {
