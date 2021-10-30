@@ -4,8 +4,11 @@
 Концептуально заменяет схемы применения UIControl и [NS]NotificationCenter на чистом Swift.
 Весь код покрыт тестами. Покрытие > 95%.
 
-Штатный способ подключения - Swift Package Manager
+Штатный способ подключения - Swift Package Manager.
 https://github.com/Oleg-E-Bakharev/SwiftObserver
+
+Если нехватает функционала доставки уведомлений на DispatchQueue обратите внимание на пакет
+https://github.com/Oleg-E-Bakharev/ObserverPlus
 
 # Примеры использования
 

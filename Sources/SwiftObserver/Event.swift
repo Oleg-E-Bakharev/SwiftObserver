@@ -17,6 +17,9 @@ open class EventObserver<Parameter> {
     open func handle(_ value: Parameter) -> Bool {
         fatalError("must override")
     }
+
+    /// Необходимо для возможности производить наследников в других модулях.
+    public init() {}
 }
 
 // MARK: -
@@ -43,7 +46,7 @@ public final class Event<Parameter>: EventProtocol {
     }
 
     /// Уведомить всех слушателей о возникновении события
-    /// При этом все отвалившиеся слушатели удаляются из списка
+    /// При этом все отвалившиеся слушатели удаляются из списка.
     /// Недоступна для внешнего вызова.
     /// Для внешнего вызова использовать EventSource.
     /// *returns* true если есть подключения слушателей
