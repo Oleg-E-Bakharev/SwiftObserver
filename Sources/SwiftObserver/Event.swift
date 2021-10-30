@@ -14,7 +14,7 @@ public protocol EventProtocol {
 open class EventObserver<Parameter> {
     /// Обработать полученное событие.
     /// Возвращает статус true - слушатель готов получать дальнейшие события. false - больше не посылать.
-    public func handle(_ value: Parameter) -> Bool {
+    open func handle(_ value: Parameter) -> Bool {
         fatalError("must override")
     }
 }
