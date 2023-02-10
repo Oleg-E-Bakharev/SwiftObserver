@@ -113,8 +113,8 @@ actor EmitterActor {
 }
 
 extension EmitterActor: AsyncSubject {
-    var eventVoid: Event<Void> { get async { voidSender.event } }
-    var eventInt: Event<Int> { get async { intSender.event } }
+    var eventVoid: Event<Void> { voidSender.event }
+    var eventInt: Event<Int> { intSender.event }
 }
 
 
