@@ -138,3 +138,8 @@ final class ObserverAsyncTests: XCTestCase {
 
 }
 ```
+
+### Примечание.
+Если вы получили ошибку компиляции вида: 
+Binary operator '+=' cannot be applied to operands of type 'Event<Void>' and '() -> ()'
+Значит вы забыли добавить import SwiftObserver
