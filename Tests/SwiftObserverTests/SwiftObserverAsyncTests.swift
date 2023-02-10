@@ -37,7 +37,7 @@ final class ObserverAsyncTests: XCTestCase {
         await s.eventVoid += {
             voidExp.fulfill()
         }
-        await e.eventInt += { _ in
+        await s.eventInt += { _ in
             intExp.fulfill()
         }
         await e.sendVoid()
