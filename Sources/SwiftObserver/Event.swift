@@ -79,7 +79,7 @@ public final class Event<Parameter: Sendable>: EventProtocol, @unchecked Sendabl
     /// Для внешнего вызова использовать EventSource.
     internal func notifyObservers(_ value: Parameter) async {
         await observers.notify(value)
-        if await self.observers.head == nil {
+        if connectionNotifier != nil, await self.observers.head == nil {
             self.connectionNotifier?(false)
         }
     }
@@ -87,7 +87,7 @@ public final class Event<Parameter: Sendable>: EventProtocol, @unchecked Sendabl
     /// Добавление слушателя. Слушатель добавляется по слабой ссылке. Чтобы убрать слушателя, надо удалить его объект.
     /// Допустимо применять посредника (Observer.Link) для отключения слушателя без удаления целевого боъекта.
     public func addObserver(_ observer: EventObserver<Parameter>) async {
-        if await observers.head == nil {
+        if connectionNotifier != nil, await observers.head == nil {
             connectionNotifier?(true)
         }
         await observers.add(observer: observer)

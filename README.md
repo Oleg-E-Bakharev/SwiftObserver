@@ -10,11 +10,18 @@ https://github.com/Oleg-E-Bakharev/SwiftObserver
 Если нехватает функционала доставки уведомлений на DispatchQueue обратите внимание на пакет
 https://github.com/Oleg-E-Bakharev/ObserverPlus
 
+# История изменений:
+
+## V1.0.0
+- Пакет собирается на Swift6
+- Методы добавления слушателя и рассылки события сделаны асинхронными. Это нужно для нормальной поддержки structural concurrency и Swift6. 
+- Для добавления наблюдателей используется метод addObserver вместо оператора +=
+- Добавилась возможность добавлять слушателя-замыкания с маркерным объектом времени жизни.
+
 # Примеры использования
 
 ```Swift
-
-import XCTest
+import Testing
 import SwiftObserver
 
 private protocol Subject {
@@ -24,56 +31,71 @@ private protocol Subject {
 private final class Emitter: Subject {
     private var voidSender = EventSender<Void>()
     var eventVoid: Event<Void> { voidSender.event }
-    
-    func send() {
-        voidSender.send()
+
+    func send() async {
+        await voidSender.send()
     }
 }
 
-private final class Receiver {
+private final class Receiver: Sendable {
     func onVoid() {
         print("Event received")
     }
 }
 
-final class ObserverSandbox: XCTestCase {
-    public func testTargetActionObserver() {
+@Suite struct ObserverSandbox {
+    // UIControl-like connection. Connection breaks on target release.
+    @Test func testTargetActionObserver() async throws {
         let emitter = Emitter()
         let receiver = Receiver()
         let subject: Subject = emitter
-        subject.eventVoid.addObserver(Observer(target: receiver, action: Receiver.onVoid))
-        emitter.send() // "Event received"
+        await subject.eventVoid.addObserver(Observer(target: receiver, action: Receiver.onVoid))
+        await emitter.send() // "Event received"
     }
-    
-    public func testTargetActionLinkObserver() {
+
+    // UIControl-like connection. Connection breaks on link release.
+    @Test func testTargetActionLinkObserver() async throws {
         let emitter = Emitter()
         let receiver = Receiver()
         let subject: Subject = emitter
         var mayBeLink: Any?
         do {
             let link = Observer.Link(target: receiver, action: Receiver.onVoid)
-            subject.eventVoid += link
+            await subject.eventVoid.addObserver(link)
             mayBeLink = link
         }
-        XCTAssertNotNil(mayBeLink)
-        emitter.send() // Event received
+        #expect(mayBeLink != nil)
+        await emitter.send() // Event received
         mayBeLink = nil
-        emitter.send() // No output
-    }
-    
-    // Prmanent closure observer
-    func testPermanentClosure() {
-        let emitter = Emitter()
-        let subject: Subject = emitter
-//        subject.eventVoid += ObserverClosure<Void>() { ... }
-        subject.eventVoid += { // OMG!!!
-            print("Event received")
-        }
-        emitter.send() // Event received
+        await emitter.send() // No output
     }
 
-    // Disposable closure link
-    func testCaseFour() {
+    // Prmanent closure observer
+    @Test func testPermanentClosure() async throws {
+        let emitter = Emitter()
+        let subject: Subject = emitter
+//      await subject.eventVoid.addObserver(ObserverClosure<Void>() { ... })
+        await subject.eventVoid.addObserver { // OMG!!!
+            print("Event received")
+        }
+        await emitter.send() // Event received
+    }
+
+    // Disposable closure observer.
+    @Test func testDisposableClosureObserevr() async throws {
+        let emitter = Emitter()
+        let subject: Subject = emitter
+        var receiver: Receiver? = Receiver()
+        await subject.eventVoid.addObserver(receiver) {
+            print("Event received")
+        }
+        await emitter.send() // Event received
+        receiver = nil
+        await emitter.send()  // No output
+    }
+
+    // Disposable closure link. Connection breaks on link release.
+    @Test func testClosureLinkObserevr() async throws {
         let emitter = Emitter()
         let subject: Subject = emitter
         var maybeLink: Any?
@@ -81,65 +103,13 @@ final class ObserverSandbox: XCTestCase {
             let link = ObserverClosure.Link {
                 print("Event received")
             }
-            subject.eventVoid += link
+            await subject.eventVoid.addObserver(link)
             maybeLink = link
         }
-        XCTAssertNotNil(maybeLink)
-        emitter.send() // Event received
+        #expect(maybeLink != nil)
+        await emitter.send() // Event received
         maybeLink = nil
-        emitter.send() // No output
+        await emitter.send() // No output
     }
 }
 ```
-
-## Асинхронное применение
-```Swift
-protocol AsyncSubject {
-    var eventVoid: Event<Void> { get async }
-    var eventInt: Event<Int> { get async }
-}
-
-actor EmitterActor {
-    private var voidSender = EventSender<Void>()
-    private var intSender = EventSender<Int>()
-
-    func sendVoid() async {
-        voidSender.send()
-    }
-
-    func sendInt() async {
-        intSender.send(0)
-    }
-}
-
-extension EmitterActor: AsyncSubject {
-    var eventVoid: Event<Void> { voidSender.event }
-    var eventInt: Event<Int> { intSender.event }
-}
-
-
-final class ObserverAsyncTests: XCTestCase {
-
-    func testActorEvents() async {
-        let voidExp = expectation(description: "Void")
-        let intExp = expectation(description: "Int")
-        let e = EmitterActor()
-        let s: AsyncSubject = e
-        await s.eventVoid += {
-            voidExp.fulfill()
-        }
-        await s.eventInt += { _ in
-            intExp.fulfill()
-        }
-        await e.sendVoid()
-        await e.sendInt()
-        await waitForExpectations(timeout: 1)
-    }
-
-}
-```
-
-### Примечание.
-Если вы получили ошибку компиляции вида: 
-Binary operator '+=' cannot be applied to operands of type 'Event<Void>' and '() -> ()'
-Значит вы забыли добавить import SwiftObserver

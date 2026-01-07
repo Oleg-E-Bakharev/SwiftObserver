@@ -60,6 +60,19 @@ private final class Receiver: Sendable {
         await emitter.send() // Event received
     }
 
+    // Disposable closure observer.
+    @Test func testDisposableClosureObserevr() async throws {
+        let emitter = Emitter()
+        let subject: Subject = emitter
+        var receiver: Receiver? = Receiver()
+        await subject.eventVoid.addObserver(receiver) {
+            print("Event received")
+        }
+        await emitter.send() // Event received
+        receiver = nil
+        await emitter.send()  // No output
+    }
+
     // Disposable closure link. Connection breaks on link release.
     @Test func testClosureLinkObserevr() async throws {
         let emitter = Emitter()

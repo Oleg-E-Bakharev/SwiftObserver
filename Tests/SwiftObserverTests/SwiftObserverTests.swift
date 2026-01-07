@@ -25,14 +25,6 @@ private final class Emitter {
     func sendInt(_ value: Int) async {
         await intSender.send(value)
     }
-        
-    func onVoidConnected(_ isConnected: Bool) {
-        isVoidEventConnected = isConnected
-    }
-    
-    func onIntConnected(_ isConnected: Bool) {
-        isIntEventConnected = isConnected
-    }
 }
 
 extension Emitter: Subject {
@@ -54,22 +46,77 @@ private final class Handler {
 @Suite struct ObserverTests {
     @Test func testEventWithoutParams() async throws {
         let e = Emitter()
-        let h = Handler()
+        var h: Handler? = Handler()
         let s: Subject = e
+        #expect(!e.isVoidEventConnected)
         await s.eventVoid.addObserver(Observer(target: h, action: Handler.onVoid))
-        #expect(!h.isHandledVoid)
+        #expect(e.isVoidEventConnected)
+        #expect(!h!.isHandledVoid)
         await e.sendVoid()
-        #expect(h.isHandledVoid)
+        #expect(h!.isHandledVoid)
+        h = nil
+        await e.sendVoid()
+        #expect(!e.isVoidEventConnected)
     }
 
     @Test func testEventWithOneParam() async throws {
         let e = Emitter()
+        var h: Handler? = Handler()
+        let s: Subject = e
+        #expect(!e.isIntEventConnected)
+        await s.eventInt.addObserver(Observer(target: h, action: Handler.onInt))
+        #expect(e.isIntEventConnected)
+        #expect(!h!.isHandledInt)
+        await e.sendInt(1)
+        #expect(h!.isHandledInt)
+        h = nil
+        await e.sendInt(1)
+        #expect(!e.isIntEventConnected)
+    }
+
+    @Test func testEventWithoutParamsAndClosure() async throws {
+        let e = Emitter()
         let h = Handler()
         let s: Subject = e
-        await s.eventInt.addObserver(Observer(target: h, action: Handler.onInt))
-        #expect(!h.isHandledInt)
+        var isHandled = false
+        await s.eventVoid.addObserver(h) {
+            isHandled = true
+        }
+        #expect(!isHandled)
+        await e.sendVoid()
+        #expect(isHandled)
+    }
+
+    @Test func testEventWithOneParamAndClosure() async throws {
+        let e = Emitter()
+        let h = Handler()
+        let s: Subject = e
+        var calledParam: Int?
+        await s.eventInt.addObserver(h) { value in
+            calledParam = value
+        }
+        #expect(calledParam == nil)
         await e.sendInt(1)
-        #expect(h.isHandledInt)
+        #expect(calledParam == 1)
+    }
+
+    @Test func testEventWithOneParamAndDisposableClosure() async throws {
+        let e = Emitter()
+        var h: Handler? = Handler()
+        let s: Subject = e
+        var calledParam: Int?
+        #expect(!e.isIntEventConnected)
+        await s.eventInt.addObserver(h) { value in
+            calledParam = value
+        }
+        #expect(e.isIntEventConnected)
+        #expect(calledParam == nil)
+        await e.sendInt(1)
+        #expect(calledParam == 1)
+        h = nil
+        await e.sendInt(2)
+        #expect(calledParam == 1)
+        #expect(!e.isIntEventConnected)
     }
 
     @Test func testEventWithTwoObservers() async throws {

@@ -1,33 +1,49 @@
 //  Copyright (C) Oleg Bakharev 2021. All Rights Reserved
 
-/// Наблюдатель события, доставляющий уведомления методу класса.
-public final class Observer<Target: AnyObject, Parameter>: EventObserver<Parameter> {
-    public typealias Action = (Target) -> (Parameter) -> Void
-    public typealias VoidAction = (Target) -> () -> Void
+/// Наблюдатель события, доставляющий уведомления методу класса или замыканию с временем жизни привязанном к классу.
+public final class Observer<Target: AnyObject, Parameter>: EventObserver<Parameter>, @unchecked Sendable {
+    public typealias Method = (Target) -> (Parameter) -> Void
+    public typealias VoidMethod = (Target) -> () -> Void
+    public typealias Closure = (Parameter) -> Void
+
+    private enum ActionType {
+        case method(Method)
+        case voidMethod(VoidMethod)
+        case closure(Closure)
+
+        func call(target: Target, with value: Parameter) {
+            switch self {
+            case .method(let method):
+                method(target)(value)
+            case .voidMethod(let method):
+                method(target)()
+            case .closure(let closure):
+                closure(value)
+            }
+        }
+    }
 
     weak var target: Target?
-    let action: Action?
-    let voidAction: VoidAction?
+    private let action: ActionType
 
-    public init(target: Target?, action: @escaping Action) {
+    public init(target: Target?, action: @escaping Method) {
         self.target = target
-        self.action = action
-        self.voidAction = nil
+        self.action = .method(action)
     }
 
-    public init(target: Target?, action: @escaping VoidAction) where Parameter == Void {
+    public init(target: Target?, action: @escaping VoidMethod) where Parameter == Void {
         self.target = target
-        self.action = nil
-        self.voidAction = action
+        self.action = .voidMethod(action)
     }
-    
+
+    public init(target: Target?, action: @escaping Closure) {
+        self.target = target
+        self.action = .closure(action)
+    }
+
     public override func handle(_ value: Parameter) -> Bool {
         guard let target = target else { return false }
-        if let action = action {
-            action(target)(value)
-        } else {
-            voidAction?(target)()
-        }
+        action.call(target: target, with: value)
         return true
     }
 }
@@ -68,7 +84,7 @@ public extension Observer {
 
 // MARK: -
 ///  Слушатель связи "один ко многим" на основе замыкания.
-public final class ObserverClosure<Parameter> : EventObserver<Parameter> {
+public final class ObserverClosure<Parameter> : EventObserver<Parameter>, @unchecked Sendable {
     public typealias Action = (Parameter) -> Void
     let action: Action
 
@@ -101,10 +117,16 @@ public extension ObserverClosure {
 
 // MARK: -
 public extension EventProtocol {
-    /// Добавление слушателя-замыкания.
-    /// Использование: event += { value in }
+    /// Добавление постоянного слушателя-замыкания.
+    /// Использование: event.addObserver { value in }
     func addObserver(action: @escaping (Parameter)->Void) async {
         await addObserver(ObserverClosure(action: action))
+    }
+
+    /// Добавление слушателя-замыкания с маркерным объектом. Если его удалить, то кложура удалится (при отсутсвии сильного цикла в ней).
+    /// Использование: event.addObserver(target) { value in }
+    func addObserver<Target: AnyObject>(_ target: Target?, action: @escaping (Parameter)->Void) async {
+        await addObserver(Observer(target: target, action: action))
     }
 
     /// Добавления обнуляемой связи к постоянному объекту. Если link удалится, то связь безопасно порвётся.

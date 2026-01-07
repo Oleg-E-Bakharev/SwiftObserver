@@ -26,18 +26,6 @@ extension EmitterActor: AsyncSubject {
     var eventInt: Event<Int> { intSender.event }
 }
 
-actor ReceiverA {
-    func subsribe(_ event: Event<Void>) async {
-        await event.addObserver { }
-    }
-}
-
-actor ReceiverB {
-    func subsribe(_ event: Event<Void>) async {
-        await event.addObserver { }
-    }
-}
-
 @Test func testActorEvents() async throws {
     let e = EmitterActor()
     let s: AsyncSubject = e
