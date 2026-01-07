@@ -1,10 +1,10 @@
 //  Copyright (C) Oleg Bakharev 2021. All Rights Reserved
 
 /// Наблюдатель события, доставляющий уведомления методу класса.
-public final class Observer<Target: AnyObject, Parameter> : EventObserver<Parameter> {
+public final class Observer<Target: AnyObject, Parameter>: EventObserver<Parameter> {
     public typealias Action = (Target) -> (Parameter) -> Void
     public typealias VoidAction = (Target) -> () -> Void
-    
+
     weak var target: Target?
     let action: Action?
     let voidAction: VoidAction?
@@ -35,7 +35,7 @@ public final class Observer<Target: AnyObject, Parameter> : EventObserver<Parame
 // MARK: -
 /// Посредник (Mediator) для создания обнуляемой связи к постоянному объекту.
 public extension Observer {
-    final class Link {
+    final class Link: @unchecked Sendable {
         public typealias Action = (Target) -> (Parameter) -> Void
         public typealias VoidAction = (Target) -> () -> Void
         
@@ -85,7 +85,7 @@ public final class ObserverClosure<Parameter> : EventObserver<Parameter> {
 // MARK: -
 /// Посредник (Mediator) для создания обнуляемой связи к замыканию.
 public extension ObserverClosure {
-    final class Link {
+    final class Link: @unchecked Sendable {
         public typealias Action = (Parameter) -> Void
         let action: Action
 
@@ -103,19 +103,19 @@ public extension ObserverClosure {
 public extension EventProtocol {
     /// Добавление слушателя-замыкания.
     /// Использование: event += { value in }
-    static func += (event: Self, action: @escaping (Parameter)->Void) {
-        event += ObserverClosure(action: action)
+    func addObserver(action: @escaping (Parameter)->Void) async {
+        await addObserver(ObserverClosure(action: action))
     }
 
     /// Добавления обнуляемой связи к постоянному объекту. Если link удалится, то связь безопасно порвётся.
-    static func +=<Target> (event: Self, link: Observer<Target, Parameter>.Link) {
+    func addObserver<Target>(_ link: Observer<Target, Parameter>.Link) async {
         typealias Link = Observer<Target, Parameter>.Link
-        event += Observer(target: link, action: Link.forward)
+        await addObserver(Observer(target: link, action: Link.forward))
     }
     
     /// Добавления обнуляемой связи к постоянному замыканию. Если link удалится, то связь безопасно порвётся.
-    static func += (event: Self, link: ObserverClosure<Parameter>.Link) {
+    func addObserver(_ link: ObserverClosure<Parameter>.Link) async {
         typealias Link = ObserverClosure<Parameter>.Link
-        event += Observer(target: link, action: Link.forward)
+        await addObserver(Observer(target: link, action: Link.forward))
     }
 }

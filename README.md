@@ -41,7 +41,7 @@ final class ObserverSandbox: XCTestCase {
         let emitter = Emitter()
         let receiver = Receiver()
         let subject: Subject = emitter
-        subject.eventVoid += Observer(target: receiver, action: Receiver.onVoid)
+        subject.eventVoid.addObserver(Observer(target: receiver, action: Receiver.onVoid))
         emitter.send() // "Event received"
     }
     

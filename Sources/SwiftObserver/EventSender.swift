@@ -2,23 +2,20 @@
 
 /// Обертка вокруг Event для возможности рассылки уведомлений.
 /// Во внешний интерфейс выставляем Event. Внутри объявляем EventSender.
-public struct EventSender<Parameter> {
-    public var event: Event<Parameter>
-    
+public struct EventSender<Parameter: Sendable>: Sendable {
+    public let event: Event<Parameter>
+
     /// Опциональный уведомитель о подключении первого слушателя к событию
-    public init(connectionNotifier: (() -> Void)? = nil) {
+    public init(connectionNotifier: ((Bool) -> Void)? = nil) {
         event = .init(connectionNotifier: connectionNotifier)
     }
         
     /// Послать уведомление всем слушателям о возникновении события
-    /// *returns* Есть ли подключения в данный момент (была ли реально произведена отправка уведомления)
-    @discardableResult
-    public mutating func send(_ value: Parameter) -> Bool {
-        return event.notifyObservers(value)
+    public func send(_ value: Parameter) async {
+        await event.notifyObservers(value)
     }
 
-    @discardableResult
-    public mutating func send() -> Bool where Parameter == Void {
-        return event.notifyObservers(())
+    public func send() async where Parameter == Void {
+        await event.notifyObservers(())
     }
 }

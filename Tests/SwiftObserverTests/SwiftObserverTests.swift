@@ -1,6 +1,6 @@
 //  Copyright (C) Oleg Bakharev 2021. All Rights Reserved
 
-import XCTest
+import Testing
 import SwiftObserver
 
 private protocol Subject {
@@ -9,21 +9,21 @@ private protocol Subject {
 }
 
 private final class Emitter {
-    private lazy var voidSender = EventSender<Void>() { [weak self] in
-        self?.isVoidEventConnected = true
+    private lazy var voidSender = EventSender<Void>() { [weak self] isConnected in
+        self?.isVoidEventConnected = isConnected
     }
-    private lazy var intSender = EventSender<Int>() { [weak self] in
-        self?.isIntEventConnected = true
+    private lazy var intSender = EventSender<Int>() { [weak self] isConnected in
+        self?.isIntEventConnected = isConnected
     }
     var isVoidEventConnected = false
     var isIntEventConnected = false
 
-    func sendVoid() {
-        isVoidEventConnected = voidSender.send()
+    func sendVoid() async {
+        await voidSender.send()
     }
 
-    func sendInt(_ value: Int) {
-        isIntEventConnected = intSender.send(value)
+    func sendInt(_ value: Int) async {
+        await intSender.send(value)
     }
         
     func onVoidConnected(_ isConnected: Bool) {
@@ -51,163 +51,163 @@ private final class Handler {
     }
 }
 
-final class ObserverTests: XCTestCase {
-    func testEventWithoutParams() {
+@Suite struct ObserverTests {
+    @Test func testEventWithoutParams() async throws {
         let e = Emitter()
         let h = Handler()
         let s: Subject = e
-        s.eventVoid += Observer(target: h, action: Handler.onVoid)
-        XCTAssertFalse(h.isHandledVoid)
-        e.sendVoid()
-        XCTAssertTrue(h.isHandledVoid)
+        await s.eventVoid.addObserver(Observer(target: h, action: Handler.onVoid))
+        #expect(!h.isHandledVoid)
+        await e.sendVoid()
+        #expect(h.isHandledVoid)
     }
 
-    func testEventWithOneParam() {
+    @Test func testEventWithOneParam() async throws {
         let e = Emitter()
         let h = Handler()
         let s: Subject = e
-        s.eventInt += Observer(target: h, action: Handler.onInt)
-        XCTAssertFalse(h.isHandledInt)
-        e.sendInt(1)
-        XCTAssertTrue(h.isHandledInt)
+        await s.eventInt.addObserver(Observer(target: h, action: Handler.onInt))
+        #expect(!h.isHandledInt)
+        await e.sendInt(1)
+        #expect(h.isHandledInt)
     }
 
-    func testEventWithTwoObservers() {
+    @Test func testEventWithTwoObservers() async throws {
         let e = Emitter()
         let s: Subject = e
         let h1 = Handler()
         let h2 = Handler()
-        s.eventVoid += Observer(target: h1, action: Handler.onVoid)
-        s.eventVoid += Observer(target: h2, action: Handler.onVoid)
-        e.sendVoid()
-        XCTAssertTrue(h1.isHandledVoid && h2.isHandledVoid)
+        await s.eventVoid.addObserver(Observer(target: h1, action: Handler.onVoid))
+        await s.eventVoid.addObserver(Observer(target: h2, action: Handler.onVoid))
+        await e.sendVoid()
+        #expect(h1.isHandledVoid && h2.isHandledVoid)
     }
 
-    func testEventWithDeadHandler() {
+    @Test func testEventWithDeadHandler() async throws {
         let e = Emitter()
         let s: Subject = e
         var wh: Handler? = Handler()
         let h1 = Handler()
         let h2 = Handler()
-        s.eventVoid += Observer(target: h1, action: Handler.onVoid)
-        s.eventVoid += Observer(target: wh, action: Handler.onVoid)
-        s.eventVoid += Observer(target: h2, action: Handler.onVoid)
-        e.sendVoid()
-        XCTAssertTrue(h1.isHandledVoid && h2.isHandledVoid && (wh?.isHandledVoid ?? false))
+        await s.eventVoid.addObserver(Observer(target: h1, action: Handler.onVoid))
+        await s.eventVoid.addObserver(Observer(target: wh, action: Handler.onVoid))
+        await s.eventVoid.addObserver(Observer(target: h2, action: Handler.onVoid))
+        await e.sendVoid()
+        #expect(h1.isHandledVoid && h2.isHandledVoid && (wh?.isHandledVoid ?? false))
         h1.isHandledVoid = false
         h2.isHandledVoid = false
         wh = nil
         // three handlers now wh is dead
-        e.sendVoid()
+        await e.sendVoid()
         // two handlers now
-        XCTAssertTrue(h1.isHandledVoid && h2.isHandledVoid)
+        #expect(h1.isHandledVoid && h2.isHandledVoid)
     }
 
-    func testEventVoidWithLinkHandler() {
+    @Test func testEventVoidWithLinkHandler() async throws {
         let e = Emitter()
         let s: Subject = e
         let h1 = Handler()
         let h2 = Handler()
         let h3 = Handler()
-        s.eventVoid += Observer(target: h1, action: Handler.onVoid)
+        await s.eventVoid.addObserver(Observer(target: h1, action: Handler.onVoid))
         var maybeLink: Any?
         do {
             let link = Observer.Link(target: h2, action: Handler.onVoid)
-            s.eventVoid += link
+            await s.eventVoid.addObserver(link)
             maybeLink = link
         }
-        e.sendVoid()
-        XCTAssertTrue(h1.isHandledVoid)
-        XCTAssertTrue(h2.isHandledVoid)
+        await e.sendVoid()
+        #expect(h1.isHandledVoid)
+        #expect(h2.isHandledVoid)
         h1.isHandledVoid = false
         h2.isHandledVoid = false
-        XCTAssertNotNil(maybeLink)
+        #expect(maybeLink != nil)
         maybeLink = nil
-        s.eventVoid += Observer(target: h3, action: Handler.onVoid)
+        await s.eventVoid.addObserver(Observer(target: h3, action: Handler.onVoid))
         // link dead now but 3 handlers
-        e.sendVoid()
+        await e.sendVoid()
         // two handlers now
 
-        XCTAssertTrue(h1.isHandledVoid)
-        XCTAssertFalse(h2.isHandledVoid)
-        XCTAssertTrue(h3.isHandledVoid)
+        #expect(h1.isHandledVoid)
+        #expect(!h2.isHandledVoid)
+        #expect(h3.isHandledVoid)
     }
 
-    func testEventIntWithLinkHandler() {
+    @Test func testEventIntWithLinkHandler() async throws {
         let e = Emitter()
         let s: Subject = e
         let h1 = Handler()
         let h2 = Handler()
         let h3 = Handler()
-        s.eventInt += Observer(target: h1, action: Handler.onInt)
+        await s.eventInt.addObserver(Observer(target: h1, action: Handler.onInt))
         var mayBeLink: Any?
         do {
             let link = Observer.Link(target: h2, action: Handler.onInt)
-            s.eventInt += link
+            await s.eventInt.addObserver(link)
             mayBeLink = link
         }
-        e.sendInt(1)
-        XCTAssertTrue(h1.isHandledInt)
-        XCTAssertTrue(h2.isHandledInt)
+        await e.sendInt(1)
+        #expect(h1.isHandledInt)
+        #expect(h2.isHandledInt)
         h1.isHandledInt = false
         h2.isHandledInt = false
-        XCTAssertNotNil(mayBeLink)
+        #expect(mayBeLink != nil)
         mayBeLink = nil
-        s.eventInt += Observer(target: h3, action: Handler.onInt)
+        await s.eventInt.addObserver(Observer(target: h3, action: Handler.onInt))
         // link dead now but 3 handlers
-        e.sendInt(2)
+        await e.sendInt(2)
         // two handlers now
 
-        XCTAssertTrue(h1.isHandledInt)
-        XCTAssertFalse(h2.isHandledInt)
-        XCTAssertTrue(h3.isHandledInt)
+        #expect(h1.isHandledInt)
+        #expect(!h2.isHandledInt)
+        #expect(h3.isHandledInt)
     }
 
-    func testIsConnected() {
+    @Test func testIsConnected() async throws {
         let e = Emitter()
         var h: Handler? = Handler()
         let s: Subject = e
-        XCTAssertFalse(e.isIntEventConnected)
-        e.sendInt(0)
-        XCTAssertFalse(e.isIntEventConnected)
-        s.eventInt += Observer(target: h, action: Handler.onInt)
-        XCTAssertTrue(e.isIntEventConnected)
-        e.sendInt(0)
-        XCTAssertTrue(e.isIntEventConnected)
+        #expect(!e.isIntEventConnected)
+        await e.sendInt(0)
+        #expect(!e.isIntEventConnected)
+        await s.eventInt.addObserver(Observer(target: h, action: Handler.onInt))
+        #expect(e.isIntEventConnected)
+        await e.sendInt(0)
+        #expect(e.isIntEventConnected)
         h = nil
         // now s.eventInt considered still connected
-        XCTAssertTrue(e.isIntEventConnected)
-        e.sendInt(0)
+        #expect(e.isIntEventConnected)
+        await e.sendInt(0)
         // new s.eventInt signals that is diconneced
-        XCTAssertFalse(e.isIntEventConnected)
+        #expect(!e.isIntEventConnected)
     }
     
-    func testObserverClosure() {
+    @Test func testObserverClosure() async throws {
         let e = Emitter()
         let s: Subject = e
         var isVoidHandled = false
         var isIntHandled = false
-        s.eventVoid += {
+        await s.eventVoid.addObserver {
             isVoidHandled = true
         }
-        s.eventInt += { value in
+        await s.eventInt.addObserver { value in
             isIntHandled = true
             print(value)
         }
-        e.sendInt(0)
-        e.sendVoid()
-        XCTAssertTrue(isVoidHandled)
-        XCTAssertTrue(isIntHandled)
+        await e.sendInt(0)
+        await e.sendVoid()
+        #expect(isVoidHandled)
+        #expect(isIntHandled)
     }
     
-    func testObserverClosureLink() {
+    @Test func testObserverClosureLink() async throws {
         let e = Emitter()
         let s: Subject = e
         var maybeLink: Any?
         var isIntHandled1 = false
         var isIntHandled2 = false
         var isIntHandled3 = false
-        s.eventInt += {_ in
+        await s.eventInt.addObserver {_ in
             isIntHandled1 = true
         }
         do {
@@ -215,26 +215,26 @@ final class ObserverTests: XCTestCase {
                 print(value)
                 isIntHandled2 = true
             }
-            s.eventInt += link
+            await s.eventInt.addObserver(link)
             maybeLink = link
         }
-        e.sendInt(0)
-        XCTAssertTrue(isIntHandled1)
-        XCTAssertTrue(isIntHandled2)
+        await e.sendInt(0)
+        #expect(isIntHandled1)
+        #expect(isIntHandled2)
         isIntHandled1 = false
         isIntHandled2 = false
-        XCTAssertNotNil(maybeLink)
+        #expect(maybeLink != nil)
         maybeLink = nil
-        s.eventInt += { (value: Int) in
+        await s.eventInt.addObserver { (value: Int) in
             print(value)
             isIntHandled3 = true
         }
         // link dead now but 3 handlers
-        e.sendInt(1)
+        await e.sendInt(1)
         // two handlers now
 
-        XCTAssertTrue(isIntHandled1)
-        XCTAssertFalse(isIntHandled2)
-        XCTAssertTrue(isIntHandled3)
+        #expect(isIntHandled1)
+        #expect(!isIntHandled2)
+        #expect(isIntHandled3)
     }
 }
