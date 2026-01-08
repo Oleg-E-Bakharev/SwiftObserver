@@ -117,13 +117,14 @@ public extension ObserverClosure {
 
 // MARK: -
 public extension EventProtocol {
-    /// Добавление постоянного слушателя-замыкания.
+    /// Добавление постоянного слушателя-замыкания. Он хранится по слабой ссылке.
+    /// Его удаление вызовет удаление элемента рассылки при следующем выполнении рассылки.
     /// Использование: event.addObserver { value in }
     func addObserver(action: @escaping (Parameter)->Void) async {
         await addObserver(ObserverClosure(action: action))
     }
 
-    /// Добавление слушателя-замыкания с маркерным объектом. Если его удалить, то кложура удалится (при отсутсвии сильного цикла в ней).
+    /// Добавление слушателя-замыкания с маркерным объектом. Он хранится по слабой ссылке. Если его удалить, то кложура удалится из списка рассылки.
     /// Использование: event.addObserver(target) { value in }
     func addObserver<Target: AnyObject>(_ target: Target?, action: @escaping (Parameter)->Void) async {
         await addObserver(Observer(target: target, action: action))
