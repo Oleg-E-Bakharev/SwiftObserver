@@ -1,7 +1,7 @@
 # SwiftObserver
 
 Реализация шаблона проектирования Наблюдатель на Swift.
-Концептуально заменяет схемы применения UIControl и [NS]NotificationCenter на чистом Swift.
+Концептуально заменяет схемы применения NotificationCenter на чистом Swift.
 Весь код покрыт тестами. Покрытие > 95%.
 
 Штатный способ подключения - Swift Package Manager.
